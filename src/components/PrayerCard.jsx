@@ -31,6 +31,7 @@ export default function PrayerCard({ name, time, image, isActive }) {
       </div>
 
       {/* Bottom Half: Time */}
+      {/* Functionality is not yet added */}
       <div
         className={`p-8 flex flex-col items-center justify-center flex-grow
         ${isActive ? "bg-zinc-800" : "bg-white"}`}

@@ -60,7 +60,9 @@ export default function MainContent({ city, prayerTimes, nextPrayerName }) {
             readOnly
             className="w-full appearance-none bg-zinc-900 text-white py-4 px-12 rounded-full border border-zinc-800 focus:outline-none text-center cursor-default font-medium transition-all hover:bg-zinc-800"
           >
-            <option value="الرياض">الرياض</option>
+            <option value="القاهرة">القاهرة</option>
+            <option value="بنها">بنها</option>
+            <option value="الاسكندية">الاسكندرية</option>
           </select>
           <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-yellow-500">
             <ChevronDown className="w-5 h-5" />

@@ -4,7 +4,7 @@ import MainContent from "./components/MainContent";
 import Footer from "./shared/Footer";
 
 export default function App() {
-  const city = "الرياض";
+  const city = "القاهرة";
   const prayerTimes = {
     fajr: "04:32",
     dhuhr: "11:58",
