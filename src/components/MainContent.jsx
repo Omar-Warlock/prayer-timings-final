@@ -1,108 +1,114 @@
 import { useEffect, useState } from "react";
-
-import axios from "axios";
+import moment from "moment";
 import { getPrayerTimingData } from "../services/service";
-
-import PrayerCard from "./PrayerCard";
-import { ChevronDown } from "lucide-react";
 import { PRAYER_IMAGES } from "../data";
+import TopSection from "./TopSection";
+import PrayerGrid from "./PrayerGrid";
+import CitySelector from "./CitySelector";
+import { getFormattedDateTime } from "../utils/date";
 
-export default function MainContent({ nextPrayerName }) {
-  const [timings, setTimings] = useState({
-    Fajr: "04:20",
-    Dhuhr: "11:50",
-    Asr: "15:18",
-    Sunset: "18:03",
-    Isha: "19:33",
+export default function MainContent() {
+  const [timings, setTimings] = useState({});
+  const [selectedCity, setSelectedCity] = useState({
+    name: "القاهرة",
+    code: "Cairo",
   });
-  const [city, setCity] = useState("cairo");
+  const [dateTime, setDateTime] = useState(getFormattedDateTime());
+  const [nextPrayerName, setNextPrayerName] = useState("");
+  const [countdown, setCountdown] = useState("");
 
-  useEffect(() => {
-    getPrayerTimingData("EG", "Cairo")
-      .then((res) => res.data)
-      .then((data) => setTimings(data.data.timings));
-  }, []);
-
-  useEffect(() => {
-    getPrayerTimingData("EG", city)
-      .then((res) => res.data)
-      .then((data) => setTimings(data.data.timings));
-  }, [city]);
-
-  useEffect(() => {}, [timings]);
-  const prayers = [
-    {
-      id: "fajr",
-      name: "الفجر",
-      time: timings.Fajr,
-      img: PRAYER_IMAGES.fajr,
-    },
-    {
-      id: "dhuhr",
-      name: "الظهر",
-      time: timings.Dhuhr,
-      img: PRAYER_IMAGES.dhuhr,
-    },
-    {
-      id: "asr",
-      name: "العصر",
-      time: timings.Asr,
-      img: PRAYER_IMAGES.asr,
-    },
-    {
-      id: "maghrib",
-      name: "المغرب",
-      time: timings.Maghrib,
-      img: PRAYER_IMAGES.maghrib,
-    },
-    {
-      id: "isha",
-      name: "العشاء",
-      time: timings.Isha,
-      img: PRAYER_IMAGES.isha,
-    },
+  const prayersArray = [
+    { key: "Fajr", name: "الفجر", img: PRAYER_IMAGES.fajr },
+    { key: "Dhuhr", name: "الظهر", img: PRAYER_IMAGES.dhuhr },
+    { key: "Asr", name: "العصر", img: PRAYER_IMAGES.asr },
+    { key: "Maghrib", name: "المغرب", img: PRAYER_IMAGES.maghrib },
+    { key: "Isha", name: "العشاء", img: PRAYER_IMAGES.isha },
   ];
+
+  useEffect(() => {
+    const interval = setInterval(
+      () => setDateTime(getFormattedDateTime()),
+      1000,
+    );
+
+    getPrayerTimingData("EG", selectedCity.code)
+      .then((res) => res.data)
+      .then((data) => setTimings(data.data.timings));
+
+    return () => clearInterval(interval);
+  }, [selectedCity]);
+
+  useEffect(() => {
+    if (!timings.Fajr) return;
+
+    const timer = setInterval(() => {
+      const momentNow = moment();
+
+      const parseTime = (time) =>
+        moment(time.replace(" ص", " AM").replace(" م", " PM"), "h:mm A").set({
+          year: momentNow.year(),
+          month: momentNow.month(),
+          date: momentNow.date(),
+        });
+
+      const Fajr = parseTime(timings.Fajr);
+      const Dhuhr = parseTime(timings.Dhuhr);
+      const Asr = parseTime(timings.Asr);
+      const Maghrib = parseTime(timings.Maghrib);
+      const Isha = parseTime(timings.Isha);
+
+      let prayerIndex = 0;
+      if (momentNow.isAfter(Fajr) && momentNow.isBefore(Dhuhr)) prayerIndex = 1;
+      else if (momentNow.isAfter(Dhuhr) && momentNow.isBefore(Asr))
+        prayerIndex = 2;
+      else if (momentNow.isAfter(Asr) && momentNow.isBefore(Maghrib))
+        prayerIndex = 3;
+      else if (momentNow.isAfter(Maghrib) && momentNow.isBefore(Isha))
+        prayerIndex = 4;
+      else prayerIndex = 0;
+
+      const nextPrayerObject = prayersArray[prayerIndex];
+      setNextPrayerName(nextPrayerObject.name);
+
+      let nextPrayerTime = parseTime(timings[nextPrayerObject.key]);
+      let remainingTime = nextPrayerTime.diff(momentNow);
+      if (remainingTime < 0) {
+        nextPrayerTime = parseTime(timings.Fajr).add(1, "day");
+        remainingTime = nextPrayerTime.diff(momentNow);
+      }
+
+      const duration = moment.duration(remainingTime);
+      const formattedCountdown = `${duration.hours()}:${duration.minutes().toString().padStart(2, "0")}:${duration.seconds().toString().padStart(2, "0")}`;
+      setCountdown(formattedCountdown);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timings]);
+
+  const handelSelectedCity = (city) => {
+    const cities = {
+      Cairo: "القاهرة",
+      Alexandria: "الاسكندرية",
+      Giza: "الجيزة",
+    };
+    setSelectedCity({ name: cities[city], code: city });
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* <==Grid Container==> */}
+      <TopSection
+        dateTime={dateTime}
+        selectedCity={selectedCity}
+        nextPrayerName={nextPrayerName}
+        countdown={countdown}
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-20">
-        {prayers.map((prayer) => (
-          <PrayerCard
-            key={prayer.id}
-            name={prayer.name}
-            time={prayer.time}
-            image={prayer.img}
-            isActive={nextPrayerName === prayer.name}
-          />
-        ))}
-      </div>
+      <PrayerGrid
+        prayers={prayersArray.map((p) => ({ ...p, time: timings[p.key] }))}
+        nextPrayerName={nextPrayerName}
+      />
 
-      {/* <==Grid Container==> */}
-
-      {/* <==City Selector==> */}
-
-      <div className="flex flex-col items-center justify-center mt-12">
-        <label className="text-zinc-500 text-sm mb-4">اختر مدينتك</label>
-        <div className="relative group w-full max-w-xs">
-          <select
-            value={city}
-            readOnly
-            className="w-full appearance-none bg-zinc-900 text-white py-4 px-12 rounded-full border border-zinc-800 focus:outline-none text-center cursor-default font-medium transition-all hover:bg-zinc-800"
-            onChange={(e) => setCity(e.target.value)}
-          >
-            <option value="Cairo">القاهرة</option>
-            <option value="Aswan">اسوان</option>
-            <option value=" ">الاسكندرية</option>
-          </select>
-          <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-yellow-500">
-            <ChevronDown className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* <==City Selector==> */}
+      <CitySelector selectedCity={selectedCity} onChange={handelSelectedCity} />
     </div>
   );
 }
